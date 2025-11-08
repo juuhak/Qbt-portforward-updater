@@ -1,0 +1,38 @@
+# Visual Studio / .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+.vscode/
+
+# Rider
+.idea/
+
+# Build outputs / CI artifacts
+publish/
+artifact/
+artifact.zip
+artifacts/
+**/publish/
+
+# NuGet
+*.nupkg
+packages/
+
+# Logs
+*.log
+qb-port-updater.log
+*.log.*
+
+# Secrets and environment
+.env
+*.local
+secrets.json
+*.pfx
+*.key
+config.json
+
+# Development settings
+src/appsettings.Development.json
