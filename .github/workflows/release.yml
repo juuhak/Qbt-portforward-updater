@@ -47,7 +47,7 @@ jobs:
           echo "artifact_path=${{ github.workspace }}/${ARTIFACT_FILENAME}" >> "$GITHUB_OUTPUT"
           
       - name: Upload Artifact to GitHub Release
-      - uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: release
           path: "${{ steps.zip_artifact.outputs.artifact_path }}"
