@@ -1,11 +1,10 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog;
+using NLog.Extensions.Logging;
 using NLog.Web;
-using System;
-using System.Threading.Tasks;
 
 namespace QbPortUpdater
 {
@@ -13,7 +12,15 @@ namespace QbPortUpdater
     {
         public static async Task<int> Main(string[] args)
         {
-            var logger = NLog.LogManager.Setup().LoadConfigurationFromFile("nlog.config").GetCurrentClassLogger();
+            var config = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .Build();
+            
+            NLog.LogManager.Configuration = new NLogLoggingConfiguration(config.GetSection("NLog"));
+
+            var logger = NLog.LogManager.GetCurrentClassLogger();
+            logger.Info("Starting QbPortUpdater version {version}", VersionInfo.GetInformationalVersion());
             try
             {
                 var builder = Host.CreateDefaultBuilder(args)
@@ -28,6 +35,7 @@ namespace QbPortUpdater
                     .ConfigureServices((hostContext, services) =>
                     {
                         services.Configure<AppConfig>(hostContext.Configuration.GetSection("QbPortUpdater"));
+                        services.AddHttpClient();
                         services.AddSingleton<IPortDetector, ProtonVpnPortDetector>();
                         services.AddHostedService<Worker>();
                     });

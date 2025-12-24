@@ -1,5 +1,3 @@
-using System;
-
 namespace QbPortUpdater
 {
     public class AppConfig
