@@ -15,46 +15,55 @@ namespace QbPortUpdater
 {
     class Worker : BackgroundService
     {
-    private readonly ILogger<Worker> _logger;
+        private readonly ILogger<Worker> _logger;
+        private readonly Microsoft.Extensions.Options.IOptionsMonitor<AppConfig> _configMonitor;
+        private readonly IEnumerable<IPortDetector> _detectors;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private AppConfig _lastValidConfig;
 
-    private readonly Microsoft.Extensions.Options.IOptionsMonitor<AppConfig> _configMonitor;
-    private readonly IEnumerable<IPortDetector> _detectors;
-    private AppConfig _lastValidConfig = new AppConfig();
+        private static class ConfigKeys
+        {
+            public const string QbUrl = "qbUrl";
+            public const string QbUsername = "qbUsername";
+            public const string QbPassword = "qbPassword";
+            public const string LogDirectory = "logDirectory";
+        }
 
-        public Worker(Microsoft.Extensions.Options.IOptionsMonitor<AppConfig> configMonitor, IEnumerable<IPortDetector> detectors, ILogger<Worker> logger)
+        public Worker(Microsoft.Extensions.Options.IOptionsMonitor<AppConfig> configMonitor, IEnumerable<IPortDetector> detectors, ILogger<Worker> logger, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
             _configMonitor = configMonitor;
             _detectors = detectors;
+            _httpClientFactory = httpClientFactory;
+            _lastValidConfig = _configMonitor.CurrentValue;
 
             _configMonitor.OnChange((newCfg, name) =>
             {
-                var missing = ValidateConfig(newCfg);
-                if (missing.Count == 0)
+                try
                 {
-                    _lastValidConfig = newCfg;
-                    _logger.LogTrace("Configuration reloaded and accepted (keys: {keys})", string.Join(", ", new[] { "qbUrl", "qbUsername", "logDirectory" }));
+                    var missing = ValidateConfig(newCfg);
+                    if (missing.Count == 0)
+                    {
+                        _lastValidConfig = newCfg;
+                        _logger.LogTrace("Configuration reloaded and accepted (keys: {keys})", string.Join(", ", new[] { ConfigKeys.QbUrl, ConfigKeys.QbUsername, ConfigKeys.LogDirectory }));
+                    }
+                    else
+                    {
+                        _logger.LogError("Reloaded configuration is invalid; missing keys: {missing}. Ignoring change.", string.Join(", ", missing));
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogError("Reloaded configuration is invalid; missing keys: {missing}. Ignoring change.", string.Join(", ", missing));
+                    _logger.LogError(ex, "Error handling configuration change.");
                 }
             });
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var scriptDir = AppContext.BaseDirectory;
-
             // Use monitored AppConfig; fall back to last valid snapshot if needed.
             var current = _configMonitor.CurrentValue ?? _lastValidConfig;
-            var qbUrl = current.QbUrl;
-            var qbUser = current.QbUsername;
-            var qbPass = current.QbPassword;
-            var logDir = current.LogDirectory;
-            var intervalStr = (current.IntervalSeconds?.ToString()) ?? "60";
-            var logLevelRaw = current.LogLevel ?? "ERROR";
-
+            
             // Validate required settings at startup; exit on failure.
             var initialMissing = ValidateConfig(current);
             if (initialMissing.Count > 0)
@@ -62,33 +71,15 @@ namespace QbPortUpdater
                 _logger.LogError("Missing required appsettings.json fields at startup: {missing}", string.Join(", ", initialMissing));
                 Environment.Exit(1);
             }
-
-            var missing = new List<string>();
-            if (string.IsNullOrWhiteSpace(qbUrl)) missing.Add("qbUrl");
-            if (string.IsNullOrWhiteSpace(qbUser)) missing.Add("qbUsername");
-            if (string.IsNullOrWhiteSpace(qbPass)) missing.Add("qbPassword");
-            if (string.IsNullOrWhiteSpace(logDir)) missing.Add("logDirectory");
-            if (missing.Any())
-            {
-                _logger.LogError("Missing required config.json fields: {missing}", string.Join(", ", missing));
-                // Exit immediately with a non-zero exit code so tools and services notice the configuration error.
-                Environment.Exit(1);
-            }
-
-            // Required values exist; assert non-null for nullability analysis.
-            var logDirNonNull = logDir!;
-            var qbUrlNonNull = qbUrl!;
-            var qbUserNonNull = qbUser!;
-            var qbPassNonNull = qbPass!;
-
-            // Startup information is verbose for local debugging; move to Trace so Info is reserved for port-update events.
-            _logger.LogTrace("Starting qb-port-updater. Checking {logDir} every {intervalSeconds} seconds. Using qBittorrent URL: {qbUrl}; username: {qbUser}; logLevel: {logLevel}", logDirNonNull, intervalStr, qbUrlNonNull, qbUserNonNull, logLevelRaw);
-
+            
+            var intervalStr = (current.IntervalSeconds?.ToString()) ?? "60";
             if (!int.TryParse(intervalStr, out var interval) || interval <= 0)
             {
                 _logger.LogError("Invalid intervalSeconds value in config.json: {intervalStr}. It must be a positive integer number of seconds.", intervalStr);
                 Environment.Exit(1);
             }
+
+            _logger.LogTrace("Starting qb-port-updater. Checking {logDir} every {intervalSeconds} seconds. Using qBittorrent URL: {qbUrl}; username: {qbUser}; logLevel: {logLevel}", current.LogDirectory, interval, current.QbUrl, current.QbUsername, current.LogLevel);
 
             string? lastPort = null;
 
@@ -118,7 +109,7 @@ namespace QbPortUpdater
                 }
                 catch (Exception ex)
                 {
-                        _logger.LogError(ex, "Error during iteration");
+                    _logger.LogError(ex, "Error during iteration");
                 }
 
                 try
@@ -131,52 +122,33 @@ namespace QbPortUpdater
             _logger.LogWarning("Worker stopping.");
         }
 
-        private record Config
-        (
-            string? QbUrl,
-            string? QbUsername,
-            string? QbPassword,
-            string? LogDirectory,
-            int? IntervalSeconds,
-            string? LogLevel,
-            string? ServiceAccount,
-            string? ServicePassword
-        );
-
-        // Note: log levels are controlled by NLog configuration (nlog.config). The legacy LogLevel parsing
-        // is no longer used.
-
         private async Task<string?> GetPortFromDetectorsAsync(string logDirectory, DetectorType? allowedDetector, CancellationToken cancellationToken)
         {
-            try
+            IEnumerable<IPortDetector> toTry = _detectors;
+            if (allowedDetector.HasValue)
             {
-                IEnumerable<IPortDetector> toTry = _detectors;
-                if (allowedDetector.HasValue)
-                {
-                    var dt = allowedDetector.Value;
-                    toTry = _detectors.Where(d => d.DetectorType == dt);
-                    _logger.LogTrace("Using configured detector: {detector}", dt.ToString());
-                }
+                var dt = allowedDetector.Value;
+                toTry = _detectors.Where(d => d.DetectorType == dt);
+                _logger.LogTrace("Using configured detector: {detector}", dt.ToString());
+            }
 
-                foreach (var d in toTry)
+            foreach (var d in toTry)
+            {
+                try
                 {
-                    try
+                    var p = await d.GetLastPortAsync(logDirectory, cancellationToken).ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(p))
                     {
-                        var p = await d.GetLastPortAsync(logDirectory, cancellationToken).ConfigureAwait(false);
-                        if (!string.IsNullOrEmpty(p))
-                        {
-                            _logger.LogTrace("Detector {detector} found port {port}", d.Name, p);
-                            return p;
-                        }
+                        _logger.LogTrace("Detector {detector} found port {port}", d.Name, p);
+                        return p;
                     }
-                    catch (OperationCanceledException) { throw; }
-                    catch (Exception ex)
-                    {
-                        _logger.LogTrace(ex, "Detector {detector} failed to inspect {dir}", d.Name, logDirectory);
-                    }
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    _logger.LogTrace(ex, "Detector {detector} failed to inspect {dir}", d.Name, logDirectory);
                 }
             }
-            catch { }
             return null;
         }
 
@@ -186,7 +158,7 @@ namespace QbPortUpdater
             {
                 _logger.LogInformation("Attempting to update qBittorrent listen_port to {newPort} at {qbUrl} for user {username}", newPort, qbUrl, username);
 
-                using var http = new HttpClient();
+                using var http = _httpClientFactory.CreateClient();
                 http.Timeout = TimeSpan.FromSeconds(10);
 
                 var loginContent = new FormUrlEncodedContent(new[] {
@@ -283,10 +255,10 @@ namespace QbPortUpdater
         {
             var missing = new List<string>();
             if (cfg == null) { missing.Add("QbPortUpdater (section missing)"); return missing; }
-            if (string.IsNullOrWhiteSpace(cfg.QbUrl)) missing.Add("qbUrl");
-            if (string.IsNullOrWhiteSpace(cfg.QbUsername)) missing.Add("qbUsername");
-            if (string.IsNullOrWhiteSpace(cfg.QbPassword)) missing.Add("qbPassword");
-            if (string.IsNullOrWhiteSpace(cfg.LogDirectory)) missing.Add("logDirectory");
+            if (string.IsNullOrWhiteSpace(cfg.QbUrl)) missing.Add(ConfigKeys.QbUrl);
+            if (string.IsNullOrWhiteSpace(cfg.QbUsername)) missing.Add(ConfigKeys.QbUsername);
+            if (string.IsNullOrWhiteSpace(cfg.QbPassword)) missing.Add(ConfigKeys.QbPassword);
+            if (string.IsNullOrWhiteSpace(cfg.LogDirectory)) missing.Add(ConfigKeys.LogDirectory);
             return missing;
         }
     }

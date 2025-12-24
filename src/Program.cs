@@ -28,6 +28,7 @@ namespace QbPortUpdater
                     .ConfigureServices((hostContext, services) =>
                     {
                         services.Configure<AppConfig>(hostContext.Configuration.GetSection("QbPortUpdater"));
+                        services.AddHttpClient();
                         services.AddSingleton<IPortDetector, ProtonVpnPortDetector>();
                         services.AddHostedService<Worker>();
                     });
