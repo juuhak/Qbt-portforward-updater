@@ -32,7 +32,7 @@ jobs:
           cp README.md artifact/package/
 
       - name: Zip package for release
-        id: zip_artifact # Assign an ID to this step
+        id: zip_artifact
         run: |
           APP_NAME="qb-port-updater"
           VERSION="${{ github.ref_name }}"
@@ -47,8 +47,7 @@ jobs:
           echo "artifact_path=${{ github.workspace }}/${ARTIFACT_FILENAME}" >> "$GITHUB_OUTPUT"
           
       - name: Upload Artifact to GitHub Release
-        uses: ncipollo/release-action@v1
+      - uses: actions/upload-artifact@v4
         with:
-          artifacts: "${{ steps.zip_artifact.outputs.artifact_path }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
-
+          name: release
+          path: "${{ steps.zip_artifact.outputs.artifact_path }}"
