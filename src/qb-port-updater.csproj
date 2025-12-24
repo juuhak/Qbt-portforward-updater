@@ -6,6 +6,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+
+    <!-- Versioning properties -->
+    <!-- Default version for local builds if not set by CI/CD -->
+    <Version Condition="'$(GITHUB_REF_NAME)' == ''">0.1.0-local</Version>
+    <!-- Use Git tag for version if building on GitHub Actions.
+         GITHUB_REF_NAME includes 'v' prefix, e.g., 'v1.0.0' -->
+    <Version Condition="'$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</Version>
+    
+    <!-- Ensure Assembly attributes reflect this version -->
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

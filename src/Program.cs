@@ -20,6 +20,7 @@ namespace QbPortUpdater
             NLog.LogManager.Configuration = new NLogLoggingConfiguration(config.GetSection("NLog"));
 
             var logger = NLog.LogManager.GetCurrentClassLogger();
+            logger.Info("Starting QbPortUpdater version {version}", VersionInfo.GetInformationalVersion());
             try
             {
                 var builder = Host.CreateDefaultBuilder(args)
