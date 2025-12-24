@@ -6,6 +6,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+
+    <!-- Versioning properties -->
+    <!-- Default version for local builds if not set by CI/CD -->
+    <Version Condition="'$(GITHUB_REF_NAME)' == ''">0.1.0-local</Version>
+    <!-- Use Git tag for version if building on GitHub Actions.
+         GITHUB_REF_NAME includes 'v' prefix, e.g., 'v1.0.0' -->
+    <Version Condition="'$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</Version>
+    
+    <!-- Ensure Assembly attributes reflect this version -->
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,12 +27,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Only copy example config files to build output. Do NOT copy developer runtime files (e.g. appsettings.Development.json) into published artifacts. -->
-  <None Include="..\appsettings.json.example" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="nlog.config" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Base configuration, included in build and publish output. -->
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    
+    <!-- Development-specific override. Included in local builds, but NOT in publish output. -->
+    <Content Include="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+     
   </ItemGroup>
 
 </Project>
