@@ -9,7 +9,7 @@
 
     <!-- Versioning properties -->
     <!-- Default version for local builds if not set by CI/CD -->
-    <Version Condition="'$(GITHUB_REF_NAME)' == ''">0.1.0-local</Version>
+    <Version Condition="'$(GITHUB_REF_NAME)' == ''">0.0.1</Version>
     <!-- Use Git tag for version if building on GitHub Actions.
          GITHUB_REF_NAME includes 'v' prefix, e.g., 'v1.0.0' -->
     <Version Condition="'$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</Version>
@@ -27,12 +27,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Base configuration, included in build and publish output. -->
-    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
-    
-    <!-- Development-specific override. Included in local builds, but NOT in publish output. -->
-    <Content Include="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
-     
+    <!-- Base configuration, included in build and publish output. --> 
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" /> 
+
+    <!-- Development-specific override: only include if the file actually exists. Will not be included in publish output. -->
+    <Content Include="appsettings.Development.json" Condition="Exists('appsettings.Development.json')" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
 </Project>
