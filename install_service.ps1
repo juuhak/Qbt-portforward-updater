@@ -94,7 +94,7 @@ if ($ServiceAccount -ne 'LocalSystem' -and $ServiceAccount -ne 'NT AUTHORITY\Loc
 }
 
 Write-Host "Creating service $ServiceName"
-$binPath = '"' + $PSScriptRoot + $exeName + '"'
+$binPath = '"' + $PSScriptRoot + '\' + $exeName + '"'
 Write-Host "Service binPath: $binPath"
 if ($ServiceAccount -eq 'LocalSystem' -or $ServiceAccount -eq 'NT AUTHORITY\LocalSystem') {
     sc.exe create $ServiceName binPath= $binPath start= auto DisplayName= "$ServiceName"  | Out-Null

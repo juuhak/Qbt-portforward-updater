@@ -15,12 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Only copy example config files to build output. Do NOT copy developer runtime files (e.g. appsettings.Development.json) into published artifacts. -->
-  <None Include="..\appsettings.json.example" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="nlog.config" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Base configuration, included in build and publish output. -->
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    
+    <!-- Development-specific override. Included in local builds, but NOT in publish output. -->
+    <Content Include="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+     
   </ItemGroup>
 
 </Project>

@@ -30,8 +30,6 @@ jobs:
           copy start_with_env.ps1 artifact\package\ 2>$null || echo
           # Package example config (do NOT include real appsettings.json containing secrets)
           copy appsettings.json.example artifact\package\ 2>$null || echo
-          # Include nlog.config if present in src so the published package has logging configured
-          copy src\nlog.config artifact\package\ 2>$null || echo
           copy README.md artifact\ 2>$null || echo
 
       - name: Zip package

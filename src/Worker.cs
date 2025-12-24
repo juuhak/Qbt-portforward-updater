@@ -1,15 +1,7 @@
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace QbPortUpdater
 {
@@ -42,6 +34,7 @@ namespace QbPortUpdater
                 try
                 {
                     var missing = ValidateConfig(newCfg);
+                    newCfg = NormalizeConfig(newCfg);
                     if (missing.Count == 0)
                     {
                         _lastValidConfig = newCfg;
@@ -66,6 +59,7 @@ namespace QbPortUpdater
             
             // Validate required settings at startup; exit on failure.
             var initialMissing = ValidateConfig(current);
+            current = NormalizeConfig(current);
             if (initialMissing.Count > 0)
             {
                 _logger.LogError("Missing required appsettings.json fields at startup: {missing}", string.Join(", ", initialMissing));
@@ -91,7 +85,7 @@ namespace QbPortUpdater
                     var port = await GetPortFromDetectorsAsync(cfg.LogDirectory!, cfg.Detector, stoppingToken);
                     if (port != null)
                     {
-                        _logger.LogInformation("Found forwarded port: {port}", port);
+                        _logger.LogTrace("Found forwarded port: {port}", port);
                         if (port != lastPort)
                         {
                             var ok = await UpdateQbittorrentPort(cfg.QbUrl!, cfg.QbUsername!, cfg.QbPassword!, port);
@@ -146,7 +140,7 @@ namespace QbPortUpdater
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
                 {
-                    _logger.LogTrace(ex, "Detector {detector} failed to inspect {dir}", d.Name, logDirectory);
+                    _logger.LogWarning(ex, "Detector {detector} failed to inspect {dir}", d.Name, logDirectory);
                 }
             }
             return null;
@@ -156,9 +150,10 @@ namespace QbPortUpdater
         {
             try
             {
-                _logger.LogInformation("Attempting to update qBittorrent listen_port to {newPort} at {qbUrl} for user {username}", newPort, qbUrl, username);
+                _logger.LogInformation("Attempting to update qBittorrent listen_port to {newPort} at {qbUrl}", newPort, qbUrl);
 
                 using var http = _httpClientFactory.CreateClient();
+                
                 http.Timeout = TimeSpan.FromSeconds(10);
 
                 var loginContent = new FormUrlEncodedContent(new[] {
@@ -180,7 +175,7 @@ namespace QbPortUpdater
                     return false;
                 }
 
-                _logger.LogInformation("Authenticated to qBittorrent at {qbUrl}", qbUrl);
+                _logger.LogTrace("Authenticated to qBittorrent at {qbUrl}", qbUrl);
 
                 var payloadObj = new { listen_port = int.Parse(newPort) };
                 var payloadJson = JsonSerializer.Serialize(payloadObj);
@@ -260,6 +255,20 @@ namespace QbPortUpdater
             if (string.IsNullOrWhiteSpace(cfg.QbPassword)) missing.Add(ConfigKeys.QbPassword);
             if (string.IsNullOrWhiteSpace(cfg.LogDirectory)) missing.Add(ConfigKeys.LogDirectory);
             return missing;
+        }
+
+        private static AppConfig NormalizeConfig(AppConfig cfg)
+        {
+            if (!string.IsNullOrEmpty(cfg.QbUrl) && !cfg.QbUrl.EndsWith("/"))
+            {
+                cfg.QbUrl += "/";
+            }
+            if (!string.IsNullOrEmpty(cfg.LogDirectory) && !cfg.LogDirectory.EndsWith(Path.DirectorySeparatorChar))
+            {
+                cfg.LogDirectory += Path.DirectorySeparatorChar;
+            }
+
+            return cfg;
         }
     }
 }
