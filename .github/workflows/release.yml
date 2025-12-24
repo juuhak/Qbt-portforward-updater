@@ -28,8 +28,6 @@ jobs:
           copy install_service.ps1 artifact\package\ 2>$null || echo
           copy uninstall_service.ps1 artifact\package\ 2>$null || echo
           copy start_with_env.ps1 artifact\package\ 2>$null || echo
-          # Package example config (do NOT include real appsettings.json containing secrets)
-          copy appsettings.json.example artifact\package\ 2>$null || echo
           copy README.md artifact\ 2>$null || echo
 
       - name: Zip package
