@@ -19,35 +19,36 @@ jobs:
 
       - name: Publish self-contained Windows binary
         run: |
-          dotnet publish ./src/qb-port-updater.csproj -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -o ./artifact/publish
+          dotnet publish ./src/qb-port-updater.csproj \
+            -c Release \
+            -r win-x64 \
+            -p:SelfContained=true \
+            -p:PublishSingleFile=true \
+            -p:IncludeAllContentForSelfExtract=true \
+            -o ./artifact/publish
 
       - name: Prepare release package
         run: |
-          # Create a directory for helper scripts and documentation
-          mkdir -p artifact/package
-          
-          # Copy scripts and README into the package directory
-          cp install_service.ps1 artifact/package/
-          cp uninstall_service.ps1 artifact/package/
-          cp README.md artifact/package/
+          # Copy scripts and README into the publish folder
+          cp install_service.ps1 uninstall_service.ps1 README.md ./artifact/publish/
 
       - name: Zip package for release
         id: zip_artifact
         run: |
           APP_NAME="qb-port-updater"
           VERSION="${{ github.ref_name }}"
-          # Remove 'v' prefix if it exists, e.g., v1.0.0 -> 1.0.0
           VERSION_CLEANED="${VERSION#v}"
           ARTIFACT_FILENAME="${APP_NAME}-${VERSION_CLEANED}.zip"
-          
-          # Create the zip file in the root of the workspace
-          (cd artifact && zip -r "../${ARTIFACT_FILENAME}" .)
-          
-          # Set output variable for the artifact path, relative to the workspace root
+
+          # Zip the contents of the publish folder directly
+          (cd artifact/publish && zip -r "../../${ARTIFACT_FILENAME}" .)
+
+          # Set output variable for the artifact path
           echo "artifact_path=${{ github.workspace }}/${ARTIFACT_FILENAME}" >> "$GITHUB_OUTPUT"
-          
+
       - name: Upload Artifact to GitHub Release
-        uses: actions/upload-artifact@v4
+        uses: ncipollo/release-action@v1
         with:
-          name: release
-          path: "${{ steps.zip_artifact.outputs.artifact_path }}"
+          artifacts: ${{ steps.zip_artifact.outputs.artifact_path }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          overwrite: true
