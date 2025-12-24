@@ -51,4 +51,5 @@ jobs:
         with:
           artifacts: ${{ steps.zip_artifact.outputs.artifact_path }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
           replacesArtifacts: true
