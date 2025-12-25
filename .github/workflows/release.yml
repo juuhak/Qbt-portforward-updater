@@ -25,7 +25,8 @@ jobs:
             -r win-x64 \
             -p:SelfContained=true \
             -p:PublishSingleFile=true \
-            -p:IncludeAllContentForSelfExtract=true \
+            -p:DebugType=none \
+            -p:DebugSymbols=false \
             -o ./artifact/publish
 
       - name: Prepare release package
