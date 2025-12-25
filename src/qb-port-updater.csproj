@@ -9,30 +9,27 @@
   <!-- ===================== -->
   <!-- Versioning            -->
   <!-- ===================== -->
-  <PropertyGroup>
+<PropertyGroup>
 
-    <!-- Default version for local builds -->
-    <BaseVersion Condition="'$(GITHUB_REF_NAME)' == ''">0.0.1</BaseVersion>
+  <!-- Default version -->
+  <BaseVersion Condition="'$(GITHUB_REF_NAME)' == ''">0.0.1</BaseVersion>
 
-    <!-- Strip leading 'v' from Git tag -->
-    <BaseVersion Condition="'$(GITHUB_REF_NAME)' != ''">
-      $([System.String]::Copy('$(GITHUB_REF_NAME)').TrimStart('v'))
-    </BaseVersion>
+  <!-- Strip 'v' prefix -->
+  <BaseVersion Condition="'$(GITHUB_REF_NAME)' != ''">$([System.String]::Copy('$(GITHUB_REF_NAME)').TrimStart('v'))</BaseVersion>
 
-    <!-- Product / NuGet version -->
-    <Version>$(BaseVersion)</Version>
+  <!-- Version for NuGet / product (supports prerelease) -->
+  <Version>$(BaseVersion)</Version>
 
-    <!-- Informational version with commit SHA -->
-    <InformationalVersion>$(BaseVersion)+$(GITHUB_SHA)</InformationalVersion>
+  <!-- Informational version with commit SHA (single line) -->
+  <InformationalVersion>$([System.String]::Copy('$(BaseVersion)'))+$(GITHUB_SHA)</InformationalVersion>
 
-    <!-- Assembly versions MUST be numeric -->
-    <AssemblyVersion>
-      $([System.Text.RegularExpressions.Regex]::Match('$(BaseVersion)','^\d+\.\d+\.\d+').Value).0
-    </AssemblyVersion>
+  <!-- Assembly versions MUST be numeric; fallback to 0.0.0 if regex fails -->
+  <AssemblyVersion>
+    $([System.String]::Copy($([System.Text.RegularExpressions.Regex]::Match('$(BaseVersion)','^\d+\.\d+\.\d+').Value))0)
+  </AssemblyVersion>
+  <FileVersion>$(AssemblyVersion)</FileVersion>
 
-    <FileVersion>$(AssemblyVersion)</FileVersion>
-
-  </PropertyGroup>
+</PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
