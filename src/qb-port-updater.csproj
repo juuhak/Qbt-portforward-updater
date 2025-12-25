@@ -1,13 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
 
- <!-- ===================== -->
+  <!-- ===================== -->
   <!-- Versioning            -->
   <!-- ===================== -->
   <PropertyGroup>
@@ -15,23 +14,20 @@
     <!-- Default version for local builds -->
     <BaseVersion Condition="'$(GITHUB_REF_NAME)' == ''">0.0.1</BaseVersion>
 
-    <!-- Strip leading 'v' from tag -->
+    <!-- Strip leading 'v' from Git tag -->
     <BaseVersion Condition="'$(GITHUB_REF_NAME)' != ''">
       $([System.String]::Copy('$(GITHUB_REF_NAME)').TrimStart('v'))
     </BaseVersion>
 
-    <!-- NuGet / product version (supports prerelease) -->
+    <!-- Product / NuGet version -->
     <Version>$(BaseVersion)</Version>
 
     <!-- Informational version with commit SHA -->
-    <InformationalVersion>
-      $(BaseVersion)+$(GITHUB_SHA)
-    </InformationalVersion>
+    <InformationalVersion>$(BaseVersion)+$(GITHUB_SHA)</InformationalVersion>
 
     <!-- Assembly versions MUST be numeric -->
-    <!-- Extract numeric part: 0.0.1 from 0.0.1-beta -->
     <AssemblyVersion>
-      $([System.Text.RegularExpressions.Regex]::Match('$(BaseVersion)', '^\d+\.\d+\.\d+').Value).0
+      $([System.Text.RegularExpressions.Regex]::Match('$(BaseVersion)','^\d+\.\d+\.\d+').Value).0
     </AssemblyVersion>
 
     <FileVersion>$(AssemblyVersion)</FileVersion>
