@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  Build-Release-Artifact:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out
         uses: actions/checkout@v4
@@ -29,7 +30,6 @@ jobs:
 
       - name: Prepare release package
         run: |
-          # Copy scripts and README into the publish folder
           cp install_service.ps1 uninstall_service.ps1 README.md ./artifact/publish/
 
       - name: Zip package for release
@@ -40,10 +40,8 @@ jobs:
           VERSION_CLEANED="${VERSION#v}"
           ARTIFACT_FILENAME="${APP_NAME}-${VERSION_CLEANED}.zip"
 
-          # Zip the contents of the publish folder directly
           (cd artifact/publish && zip -r "../../${ARTIFACT_FILENAME}" .)
 
-          # Set output variable for the artifact path
           echo "artifact_path=${{ github.workspace }}/${ARTIFACT_FILENAME}" >> "$GITHUB_OUTPUT"
 
       - name: Upload Artifact to GitHub Release
