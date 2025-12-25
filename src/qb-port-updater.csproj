@@ -7,17 +7,35 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
 
-    <!-- Versioning properties -->
-    <!-- Default version for local builds if not set by CI/CD -->
-    <Version Condition="'$(GITHUB_REF_NAME)' == ''">0.0.1</Version>
-    <!-- Use Git tag for version if building on GitHub Actions.
-         GITHUB_REF_NAME includes 'v' prefix, e.g., 'v1.0.0' -->
-    <Version Condition="'$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</Version>
-    
-    <!-- Ensure Assembly attributes reflect this version -->
-    <AssemblyVersion>$(Version)</AssemblyVersion>
-    <FileVersion>$(Version)</FileVersion>
-    <InformationalVersion>$(Version)</InformationalVersion>
+ <!-- ===================== -->
+  <!-- Versioning            -->
+  <!-- ===================== -->
+  <PropertyGroup>
+
+    <!-- Default version for local builds -->
+    <BaseVersion Condition="'$(GITHUB_REF_NAME)' == ''">0.0.1</BaseVersion>
+
+    <!-- Strip leading 'v' from tag -->
+    <BaseVersion Condition="'$(GITHUB_REF_NAME)' != ''">
+      $([System.String]::Copy('$(GITHUB_REF_NAME)').TrimStart('v'))
+    </BaseVersion>
+
+    <!-- NuGet / product version (supports prerelease) -->
+    <Version>$(BaseVersion)</Version>
+
+    <!-- Informational version with commit SHA -->
+    <InformationalVersion>
+      $(BaseVersion)+$(GITHUB_SHA)
+    </InformationalVersion>
+
+    <!-- Assembly versions MUST be numeric -->
+    <!-- Extract numeric part: 0.0.1 from 0.0.1-beta -->
+    <AssemblyVersion>
+      $([System.Text.RegularExpressions.Regex]::Match('$(BaseVersion)', '^\d+\.\d+\.\d+').Value).0
+    </AssemblyVersion>
+
+    <FileVersion>$(AssemblyVersion)</FileVersion>
+
   </PropertyGroup>
 
   <ItemGroup>
