@@ -15,8 +15,9 @@ This service is a .NET reimplementation of the original Python `qb-port-updater.
     cd "C:\Program Files\QbPortUpdater"
 
     # Run the installer
-    .\install_service.ps1 -ServiceName "QbPortUpdater"
+    .\install_service.ps1
     ```
+    This installs and starts a service named `QbtPortUpdater` running as `LocalSystem`. No parameters are required; if you need to run under a different account, pass `-ServiceAccount` (and `-ServicePassword` if needed), or add `-NonInteractive` to skip the account prompts entirely.
 5.  The service will be installed and started.
 
 ## Configuration
@@ -50,13 +51,14 @@ To remove the service, run `uninstall_service.ps1` as an Administrator.
 # Navigate to the service directory
 cd "C:\Program Files\QbPortUpdater"
 
-# Uninstall the service and remove all files
-.\uninstall_service.ps1 -ServiceName "QbPortUpdater" -RemoveFiles
+# Uninstall the service
+.\uninstall_service.ps1
 ```
+No parameters are required. This stops and removes the `QbtPortUpdater` service; it doesn't delete the installation directory, so remove that manually if you're uninstalling for good.
 
 ## Building from Source
 
-To build and run the project locally, you will need the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+To build and run the project locally, you will need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ```powershell
 # Set environment to Development for local runs

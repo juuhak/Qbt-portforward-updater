@@ -88,9 +88,9 @@ if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
 
 # Set ACLs (grant Read/Execute to service account if not LocalSystem)
 if ($ServiceAccount -ne 'LocalSystem' -and $ServiceAccount -ne 'NT AUTHORITY\LocalSystem') {
-    Write-Host "Granting read/execute permissions on $publishFull to $ServiceAccount"
+    Write-Host "Granting read/execute permissions on $PSScriptRoot to $ServiceAccount"
     $grantArg = "{0}:(OI)(CI)RX" -f $ServiceAccount
-    & icacls $publishFull /grant $grantArg /T | Out-Null
+    & icacls $PSScriptRoot /grant $grantArg /T | Out-Null
 }
 
 Write-Host "Creating service $ServiceName"

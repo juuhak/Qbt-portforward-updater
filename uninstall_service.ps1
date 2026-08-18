@@ -1,4 +1,4 @@
-param([string]$ServiceName = 'QbPortUpdater')
+$ServiceName = 'QbtPortUpdater'
 
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
     Write-Host "Stopping service $ServiceName..."
