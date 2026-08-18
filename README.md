@@ -9,7 +9,7 @@ This service is a .NET reimplementation of the original Python `qb-port-updater.
 1.  Download the latest `.zip` package from the [GitHub Releases](https://github.com/jphastings/Qbt-portforward-updater/releases) page.
 2.  Unzip the archive to your desired location (e.g., `C:\Program Files\QbPortUpdater`).
 3.  Open `appsettings.json` in a text editor and fill in your qBittorrent and detector details (see Configuration below).
-4.  Run PowerShell as an Administrator and execute the installation script:
+4.  Run PowerShell **as an Administrator** and execute the installation script (it requires elevation and will refuse to run otherwise):
     ```powershell
     # Navigate to the unzipped directory
     cd "C:\Program Files\QbPortUpdater"
@@ -45,7 +45,7 @@ Logging is also configured in `appsettings.json` under the `"NLog"` section.
 
 ## Uninstallation
 
-To remove the service, run `uninstall_service.ps1` as an Administrator.
+To remove the service, run `uninstall_service.ps1` **as an Administrator** (it requires elevation and will refuse to run otherwise).
 
 ```powershell
 # Navigate to the service directory
