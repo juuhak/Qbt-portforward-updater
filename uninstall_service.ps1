@@ -1,3 +1,5 @@
+#Requires -RunAsAdministrator
+
 $ServiceName = 'QbtPortUpdater'
 
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
