@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace QbPortUpdater
@@ -177,8 +178,8 @@ namespace QbPortUpdater
 
                 _logger.LogTrace("Authenticated to qBittorrent at {qbUrl}", qbUrl);
 
-                var payloadObj = new { listen_port = int.Parse(newPort) };
-                var payloadJson = JsonSerializer.Serialize(payloadObj);
+                var payloadObj = new QbPreferencesPayload(int.Parse(newPort));
+                var payloadJson = JsonSerializer.Serialize(payloadObj, WorkerJsonContext.Default.QbPreferencesPayload);
                 var prefsContent = new FormUrlEncodedContent(new[] {
                     new KeyValuePair<string,string>("json", payloadJson)
                 });
@@ -270,5 +271,12 @@ namespace QbPortUpdater
 
             return cfg;
         }
+    }
+
+    record QbPreferencesPayload(int listen_port);
+
+    [JsonSerializable(typeof(QbPreferencesPayload))]
+    partial class WorkerJsonContext : JsonSerializerContext
+    {
     }
 }

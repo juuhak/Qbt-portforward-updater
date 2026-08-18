@@ -7,7 +7,7 @@ on:
 
 jobs:
   Build-Release-Artifact:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Check out
@@ -16,33 +16,35 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Publish self-contained Windows binary
+        shell: pwsh
         run: |
-          dotnet publish ./src/qb-port-updater.csproj \
-            -c Release \
-            -r win-x64 \
-            -p:SelfContained=true \
-            -p:PublishSingleFile=true \
-            -p:IncludeAllContentForSelfExtract=true \
-            -o ./artifact/publish
+          dotnet publish ./src/qb-port-updater.csproj `
+            -c Release `
+            -r win-x64 `
+            -o ./artifact/win-x64
 
       - name: Prepare release package
+        shell: pwsh
         run: |
-          cp install_service.ps1 uninstall_service.ps1 README.md ./artifact/publish/
+          Remove-Item ./artifact/win-x64/*.pdb -Force -ErrorAction SilentlyContinue
+          Copy-Item install_service.ps1, uninstall_service.ps1, README.md -Destination ./artifact/win-x64/
 
       - name: Zip package for release
         id: zip_artifact
+        shell: pwsh
         run: |
-          APP_NAME="qb-port-updater"
-          VERSION="${{ github.ref_name }}"
-          VERSION_CLEANED="${VERSION#v}"
-          ARTIFACT_FILENAME="${APP_NAME}-${VERSION_CLEANED}.zip"
+          $APP_NAME = "qb-port-updater"
+          $VERSION = "${{ github.ref_name }}"
+          $VERSION_CLEANED = $VERSION -replace '^v', ''
+          $ARTIFACT_FILENAME = "$APP_NAME-$VERSION_CLEANED.zip"
 
-          (cd artifact/publish && zip -r "../../${ARTIFACT_FILENAME}" .)
+          Compress-Archive -Path ./artifact/win-x64/* -DestinationPath "./$ARTIFACT_FILENAME"
 
-          echo "artifact_path=${{ github.workspace }}/${ARTIFACT_FILENAME}" >> "$GITHUB_OUTPUT"
+          $ARTIFACT_PATH = Join-Path "${{ github.workspace }}" $ARTIFACT_FILENAME
+          echo "artifact_path=$ARTIFACT_PATH" >> $env:GITHUB_OUTPUT
 
       - name: Upload Artifact to GitHub Release
         uses: ncipollo/release-action@v1
